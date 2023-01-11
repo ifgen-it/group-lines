@@ -1,4 +1,5 @@
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -12,6 +13,8 @@ import java.util.stream.Collectors;
  */
 public class EquationGrouper {
     private static final int NOT_FOUND_INDEX = -1;
+    private static final double ZERO_DOUBLE = 0;
+    private static final int DIVIDE_SCALE = 20;
     private static final Logger logger = Logger.getLogger(EquationGrouper.class.getName());
 
     public Set<Set<String>> groupByParallel(List<String> tokens) {
@@ -27,8 +30,17 @@ public class EquationGrouper {
                 .filter(Objects::nonNull)
                 .toList();
 
-        Map<BigDecimal, List<Equation>> map = equations.stream()
-                .collect(Collectors.groupingBy(equation -> equation.getA().divide(equation.getB())));
+        Map<String, List<Equation>> map = equations.stream()
+                .collect(Collectors.groupingBy(equation -> {
+                    BigDecimal a = equation.getA();
+                    BigDecimal b = equation.getB();
+                    if (!BigDecimal.ZERO.equals(a) && !BigDecimal.ZERO.equals(b))
+                        return equation.getA().divide(equation.getB(), DIVIDE_SCALE, RoundingMode.UP).toString();
+                    else if (BigDecimal.ZERO.equals(a))
+                        return "y";
+                    else
+                        return "x";
+                }));
 
         return map.values().stream()
                 .map(parallelEquations -> parallelEquations.stream()
@@ -36,8 +48,8 @@ public class EquationGrouper {
                 .collect(Collectors.toSet());
     }
 
-    private Equation parseToken(String srsToken) {
-        String token = srsToken.trim().toLowerCase().replaceAll(",", ".");
+    private Equation parseToken(String srcToken) {
+        String token = srcToken.trim().toLowerCase().replaceAll(",", ".");
         int xIndex = token.indexOf("x");
         if (xIndex == NOT_FOUND_INDEX)
             throw new RuntimeException("x variable is not defined");
@@ -59,9 +71,7 @@ public class EquationGrouper {
         String strZero = token;
         checkZero(strZero);
 
-        if (BigDecimal.ZERO.equals(a) || BigDecimal.ZERO.equals(b))
-            throw new RuntimeException("A, B-coefficients must be not zero");
-        return new Equation(a, b, c, srsToken);
+        return new Equation(a, b, c, srcToken);
     }
 
     private BigDecimal parseAToDouble(String str) {
@@ -145,10 +155,19 @@ public class EquationGrouper {
         private final String token;
 
         public Equation(BigDecimal a, BigDecimal b, BigDecimal c, String token) {
-            this.a = a;
-            this.b = b;
-            this.c = c;
+            this.a = fixZeroValue(a);
+            this.b = fixZeroValue(b);
+            this.c = fixZeroValue(c);
             this.token = token;
+            if (BigDecimal.ZERO.equals(this.a) && BigDecimal.ZERO.equals(this.b))
+                throw new RuntimeException("A, B-coefficients cannot be = 0 simultaneously");
+        }
+
+        private BigDecimal fixZeroValue(BigDecimal var) {
+            double varDouble = var.doubleValue();
+            if (ZERO_DOUBLE == varDouble)
+                return BigDecimal.ZERO;
+            return var;
         }
 
         public BigDecimal getA() {

@@ -21,15 +21,28 @@ public class EquationGrouperTest {
     }
 
     @Test
-    public void testZeros_invalid_coefficients() {
+    public void testPrecision2() {
         EquationGrouper equationGrouper = new EquationGrouper();
-        String t1 = "1x + 0.1y + 5 = 0";
-        String t2_failed = "2x + 0y + 5 = 0";
-        String t3 = "0.1x - y = 0";
-        String t4_failed = "-0x - 2y - 2 = 0";
-        List<String> tokens = List.of(t1, t2_failed, t3, t4_failed);
+        String t1 = "x + 3y + 5 = 0";
+        String t2 = "10000000x + 30000000y + 5 = 0";
+        List<String> tokens = List.of(t1, t2);
 
-        Set<Set<String>> expected = Set.of(Set.of(t1), Set.of(t3));
+        Set<Set<String>> expected = Set.of(Set.of(t1, t2));
+        Set<Set<String>> actual = equationGrouper.groupByParallel(tokens);
+
+        Assertions.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testZeros() {
+        EquationGrouper equationGrouper = new EquationGrouper();
+        String t1 = "1x + 0y + 5 = 0";
+        String t2 = "2x - 0.0y + 5 = 0";
+        String t3 = "0x - y = 0";
+        String t4 = "0x + 2y - 2 = 0";
+        List<String> tokens = List.of(t1, t2, t3, t4);
+
+        Set<Set<String>> expected = Set.of(Set.of(t1, t2), Set.of(t3, t4));
         Set<Set<String>> actual = equationGrouper.groupByParallel(tokens);
 
         Assertions.assertEquals(expected, actual);
