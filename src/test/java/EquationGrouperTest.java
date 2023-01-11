@@ -21,15 +21,15 @@ public class EquationGrouperTest {
     }
 
     @Test
-    public void testZeros() {
+    public void testZeros_invalid_coefficients() {
         EquationGrouper equationGrouper = new EquationGrouper();
-        String t1 = "1x + 0y + 5 = 0";
-        String t2 = "2x + 0y + 5 = 0";
-        String t3 = "0x - y = 0";
-        String t4 = "0x - 2y - 2 = 0";
-        List<String> tokens = List.of(t1, t2, t3, t4);
+        String t1 = "1x + 0.1y + 5 = 0";
+        String t2_failed = "2x + 0y + 5 = 0";
+        String t3 = "0.1x - y = 0";
+        String t4_failed = "-0x - 2y - 2 = 0";
+        List<String> tokens = List.of(t1, t2_failed, t3, t4_failed);
 
-        Set<Set<String>> expected = Set.of(Set.of(t1, t2), Set.of(t3, t4));
+        Set<Set<String>> expected = Set.of(Set.of(t1), Set.of(t3));
         Set<Set<String>> actual = equationGrouper.groupByParallel(tokens);
 
         Assertions.assertEquals(expected, actual);

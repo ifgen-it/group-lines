@@ -1,3 +1,4 @@
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -26,8 +27,8 @@ public class EquationGrouper {
                 .filter(Objects::nonNull)
                 .toList();
 
-        Map<Double, List<Equation>> map = equations.stream()
-                .collect(Collectors.groupingBy(equation -> equation.getA() / equation.getB()));
+        Map<BigDecimal, List<Equation>> map = equations.stream()
+                .collect(Collectors.groupingBy(equation -> equation.getA().divide(equation.getB())));
 
         return map.values().stream()
                 .map(parallelEquations -> parallelEquations.stream()
@@ -41,51 +42,53 @@ public class EquationGrouper {
         if (xIndex == NOT_FOUND_INDEX)
             throw new RuntimeException("x variable is not defined");
         String strA = token.substring(0, xIndex);
-        double a = parseAToDouble(strA);
+        BigDecimal a = parseAToDouble(strA);
         token = token.substring(xIndex + 1);
         int yIndex = token.indexOf("y");
         if (yIndex == NOT_FOUND_INDEX)
             throw new RuntimeException("y variable is not defined");
         String strB = token.substring(0, yIndex);
-        double b = parseBToDouble(strB);
+        BigDecimal b = parseBToDouble(strB);
         token = token.substring(yIndex + 1);
         int eqIndex = token.indexOf("=");
         if (eqIndex == NOT_FOUND_INDEX)
             throw new RuntimeException("= symbol is absent");
         String strC = token.substring(0, eqIndex);
-        double c = parseCToDouble(strC);
+        BigDecimal c = parseCToDouble(strC);
         token = token.substring(eqIndex + 1);
         String strZero = token;
         checkZero(strZero);
 
+        if (BigDecimal.ZERO.equals(a) || BigDecimal.ZERO.equals(b))
+            throw new RuntimeException("A, B-coefficients must be not zero");
         return new Equation(a, b, c, srsToken);
     }
 
-    private double parseAToDouble(String str) {
+    private BigDecimal parseAToDouble(String str) {
         str = str.trim().replaceAll(" ", "");
         if (str.length() == 0)
-            return 1;
+            return BigDecimal.ONE;
         Pair pair = getSignAndRemain(str, "a");
-        double sign = pair.sign;
+        BigDecimal sign = pair.sign;
         if (pair.remain.length() == 0) return sign;
-        return sign * Double.parseDouble(pair.remain);
+        return sign.multiply(new BigDecimal(pair.remain));
     }
 
-    private double parseBToDouble(String str) {
+    private BigDecimal parseBToDouble(String str) {
         str = str.trim().replaceAll(" ", "");
         if (str.length() == 0)
             throw new RuntimeException("Wrong B-coefficient");
 
         Pair pair = getSignAndRemain(str, "b");
-        double sign = pair.sign;
+        BigDecimal sign = pair.sign;
         if (pair.remain.length() == 0) return sign;
-        return sign * Double.parseDouble(pair.remain);
+        return sign.multiply(new BigDecimal(pair.remain));
     }
-    private double parseCToDouble(String str) {
+    private BigDecimal parseCToDouble(String str) {
         str = str.trim().replaceAll(" ", "");
         if (str.isBlank())
-            return 0;
-        return Double.parseDouble(str);
+            return BigDecimal.ZERO;
+        return new BigDecimal(str);
     }
 
     private void checkZero(String strZero) {
@@ -96,10 +99,10 @@ public class EquationGrouper {
     // str.length must be > 0
     private Pair getSignAndRemain(String str, String coefficient) {
         char first = str.charAt(0);
-        double sign = 1;
+        BigDecimal sign = BigDecimal.ONE;
         String remain = str;
         if (first == '-') {
-            sign = -1;
+            sign = BigDecimal.valueOf(-1);
             remain = str.substring(1);
         } else if (first == '+') {
             remain = str.substring(1);
@@ -116,15 +119,15 @@ public class EquationGrouper {
         return new Pair(sign, remain);
     }
     private static class Pair {
-        private final double sign;
+        private final BigDecimal sign;
         private final String remain;
 
-        public Pair(double sign, String remain) {
+        public Pair(BigDecimal sign, String remain) {
             this.sign = sign;
             this.remain = remain;
         }
 
-        public double getSign() {
+        public BigDecimal getSign() {
             return sign;
         }
 
@@ -135,28 +138,28 @@ public class EquationGrouper {
 
 
     private static class Equation {
-        private final double a;
-        private final double b;
-        private final double c;
+        private final BigDecimal a;
+        private final BigDecimal b;
+        private final BigDecimal c;
 
         private final String token;
 
-        public Equation(double a, double b, double c, String token) {
+        public Equation(BigDecimal a, BigDecimal b, BigDecimal c, String token) {
             this.a = a;
             this.b = b;
             this.c = c;
             this.token = token;
         }
 
-        public double getA() {
+        public BigDecimal getA() {
             return a;
         }
 
-        public double getB() {
+        public BigDecimal getB() {
             return b;
         }
 
-        public double getC() {
+        public BigDecimal getC() {
             return c;
         }
 
